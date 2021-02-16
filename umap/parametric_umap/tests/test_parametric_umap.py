@@ -1,7 +1,6 @@
 import numpy as np
 import tempfile
 import pytest
-from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
 
 try:
@@ -14,12 +13,6 @@ else:
     from umap.parametric_umap import ParametricUMAP, load_ParametricUMAP
 
 tf_only = pytest.mark.skipif(not IMPORT_TF, reason="TensorFlow >= 2.0 is not installed")
-
-
-@pytest.fixture(scope="session")
-def moon_dataset():
-    X, _ = make_moons(200)
-    return X
 
 
 @tf_only
