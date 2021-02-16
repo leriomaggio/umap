@@ -1,3 +1,3 @@
-from .parametric_umap import ParametricUMAP, GradientClippedModel
+from .parametric_umap import ParametricUMAP, GradientClippedModel, load_ParametricUMAP
 
-__all__ = ["ParametricUMAP"]
+__all__ = ["ParametricUMAP", "GradientClippedModel", "load_ParametricUMAP"]
