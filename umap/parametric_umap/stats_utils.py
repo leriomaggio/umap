@@ -1,10 +1,14 @@
 import numpy as np
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any
 
 try:
     import torch
 except ImportError:
-    pass
+    TensorType = Any
+else:
+    TensorType = torch.Tensor
+
+ArrayLike = Union[TensorType, np.ndarray]
 
 
 def _make_positive_axis(axis: Union[float, List[float]], ndims: int) -> Tuple[int]:
@@ -15,29 +19,61 @@ def _make_positive_axis(axis: Union[float, List[float]], ndims: int) -> Tuple[in
     return tuple(map(int, axis))
 
 
+def _assert_tensor_compatibility(t1: ArrayLike, t2: ArrayLike, attr: str = "shape"):
+    try:
+        t1_prop, t2_prop = getattr(t1, attr), getattr(t2, attr)
+    except AttributeError as e:
+        raise e
+    else:
+        try:
+            assert t1_prop == t2_prop
+        except AssertionError:
+            raise ValueError(
+                "The two tensors have different {}: {} != {}".format(
+                    attr, t1_prop, t2_prop
+                )
+            )
+
+
 def covariance(
     x, y=None, sample_axis: int = 0, event_axis: int = -1, keepdims: bool = False
 ) -> torch.Tensor:
     """PyTorch implementation of the tfp.stats.covariance function in TF"""
 
+    if x is None:
+        raise ValueError("X cannot be None")
+
     # TODO: test with either numpy.array and torch.Tensor as x
-    try:
-        x = torch.from_numpy(x)
-    except TypeError:  # x is already a Tensor object
-        pass
-    finally:
-        x = x - torch.mean(x, dim=sample_axis, keepdim=True)
+    if not isinstance(x, torch.Tensor):
+        try:
+            x = torch.from_numpy(x)
+        except TypeError:  # x is of incompatible type - so exception is raised
+            raise TypeError(
+                "X is of incompatible type. "
+                "Expected either np.ndarray or torch.Tensor, got {}".format(type(x))
+            )
+    x = x - torch.mean(x, dim=sample_axis, keepdim=True)
 
     # TODO: test with either y=None or not and either types
     if y is None:
         y = x
     else:
-        try:
-            y = torch.from_numpy(y)
-        except TypeError:  # y is not None and already a torch Tensor
-            pass
-        finally:
-            y = y - torch.mean(y, dim=sample_axis, keepdim=True)
+        if not isinstance(y, torch.Tensor):
+            try:
+                y = torch.from_numpy(y)
+            except TypeError:  # y is not None and already a torch Tensor
+                raise TypeError(
+                    "Y is of incompatible type. "
+                    "Expected either np.ndarray or torch.Tensor, got {}".format(type(y))
+                )
+        y = y - torch.mean(y, dim=sample_axis, keepdim=True)
+
+    # assert that x and y are compatible
+    # NOTE: Compatibility is determined in terms of same shapes and same dtype
+    # The implementation included in `tfp` only checks for matching shapes,
+    # however, tensors needs to be of the same dtype as well for numerical reasons!
+    _assert_tensor_compatibility(x, y, attr="shape")
+    _assert_tensor_compatibility(x, y, attr="dtype")
 
     # TODO: test no event axis
     if event_axis is None:
