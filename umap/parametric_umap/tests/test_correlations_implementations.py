@@ -102,7 +102,7 @@ def test_covariance_matches_torch_variance_when_no_event_is_specified(torch_tens
     cov_th = covariance(torch_tensor, sample_axis=0, event_axis=None)
     assert cov_th.shape == torch_tensor.shape[1:]
     torch_var = torch.var(torch_tensor, unbiased=False, dim=0)
-    assert_almost_equal(cov_th.numpy(), torch_var.numpy(), decimal=6)
+    assert_array_almost_equal(cov_th.numpy(), torch_var.numpy(), decimal=6)
 
 
 # ------------------------
